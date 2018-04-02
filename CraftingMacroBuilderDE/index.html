@@ -1,0 +1,387 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minzer crafting builder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.9.1.js"></script>
+    <script src="https://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+    <script src="jquery.cookie.js"></script>
+    <script src="data.js"></script>
+    <style>
+            body{
+                font-family: Calibri;
+            }
+            .step {
+                width: 40px;
+                height: 40px;
+                cursor: pointer;
+                margin: 1px 1px 1px 1px;
+            }
+
+
+
+    </style>
+    <!--<script type="text/javascript" src="tooltip2.js"></script>-->
+	
+    <script>
+            var xivdb_tooltips = {
+                "language": "DE"
+            }
+
+
+
+    </script>
+    <script>
+            $(function () {
+                $("input[type=button]").button();
+            });
+            $(function () {
+                $("#accordion").accordion();
+                $("#accordion2").accordion();
+                $("#accordion3").accordion();
+                $("#accordion4").accordion();
+            });
+            var order = ['buff', 'cp_buff', 'dura_']
+            var tooltip = ['http://xivdb.com/?skill/286/Comfort-Zone', 'http://xivdb.com/?skill/252/Inner-Quiet', 'http://xivdb.com/?skill/244/Steady-Hand', 'http://xivdb.com/?skill/281/Steady-Hand-II', 'http://xivdb.com/?skill/100001/Basic-Synthesis', 'http://xivdb.com/?skill/100007/Standard-Synthesis', 'http://xivdb.com/?skill/100063/Careful-Synthesis', 'http://xivdb.com/?skill/100069/Careful-Synthesis-II', 'http://xivdb.com/?skill/100083/Flawless-Synthesis', 'http://xivdb.com/?skill/100002/Basic-Touch', 'http://xivdb.com/?skill/100004/Standard-Touch', 'http://xivdb.com/?skill/100008/Advanced-Touch', 'http://xivdb.com/?skill/100108/Hasty-Touch', 'http://xivdb.com/?skill/100009/Byregot\'s-Blessing', 'http://xivdb.com/?skill/276/Rumination', 'http://xivdb.com/?skill/260/Great-Strides', 'http://xivdb.com/?skill/284/Innovation', 'http://xivdb.com/?skill/100003/Master\'s-Mend', 'http://xivdb.com/?skill/100005/Master\'s-Mend-II', 'http://xivdb.com/?skill/279/Waste-Not', 'http://xivdb.com/?skill/285/Waste-Not-II', 'http://xivdb.com/?skill/277/Ingenuity', 'http://xivdb.com/?skill/283/Ingenuity-II', 'http://xivdb.com/?skill/278/Manipulation', 'http://xivdb.com/?skill/100113/Observe', 'http://xivdb.com/?skill/100039/Piece-by-Piece', 'http://xivdb.com/?skill/100033/Rapid-Synthesis'];
+            var rumi = [0, 15, 24, 32, 39, 45, 50, 54, 57, 59, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60];
+            var macros = [];
+            $(document).ready(function () {
+                var html = '';
+                var cat = '';
+                for (var i = 0; i < m.data.length; i++) {
+                    if (m.data[i].fav) {
+                        if (m.data[i].category !== cat) {
+                            cat = m.data[i].category;
+                            if (i !== 0)
+                                html += "<br/>";
+                        }
+                        html += '<img src="images/' + m.data[i].image + '" class="step" Title="' + m.data[i].name + '" onclick="add(' + i + ');"/>';
+                    }
+                }
+                html += '<br/><br/>';
+                for (var i = 0; i < m.data.length; i++) {
+                    if (!m.data[i].fav) {
+                        html += '<img src="images/' + m.data[i].image + '" class="step" Title="' + m.data[i].name + '" onclick="add(' + i + ');"/>';
+                    }
+                }
+                $('#list').html(html);
+                if (Cookies.get("macros") !== undefined) {
+                    macros = JSON.parse(Cookies.get("macros"));
+                    refreshList();
+                }
+            });
+            function calc_cp() {
+                var total_cp = 0;
+                var comfort = 0;
+                var inner = -1;
+                var step = $('#temp').val().split(",");
+                for (var j = 0; j < step.length - 1; j++) {
+                    total_cp += m.data[step[j]].cp;
+                    if (m.data[step[j]].name === 'Rumination' && inner > 0)
+                        total_cp -= rumi[inner];
+                    if (comfort > 0)
+                        total_cp -= 8;
+                    comfort--;
+                    if (inner >= 0 && (m.data[step[j]].name == 'Basic Touch' || m.data[step[j]].name == 'Advanced Touch' || m.data[step[j]].name == 'Standard Touch'))
+                        inner++;
+                    if (m.data[step[j]].name == 'Inner Quiet' && inner == -1)
+                        inner = 0;
+                    if (m.data[step[j]].name == 'Comfort Zone')
+                        comfort = 10;
+                }
+                $('#used_cp').html(total_cp);
+            }
+
+            function add(i) {
+                $('#temp').val($('#temp').val() + i + ',');
+                refresh();
+                show_result();
+            }
+
+            function rm(i) {
+                var temp = '';
+                var step = $('#temp').val().split(",");
+                for (var j = 0; j < step.length - 1; j++) {
+                    if (i != j)
+                        temp += step[j] + ',';
+                }
+                $('#temp').val(temp);
+                refresh();
+                show_result();
+            }
+
+            function refresh() {
+                var step = $('#temp').val().split(",");
+                var html = '';
+                for (var i = 0; i < step.length - 1; i++) {
+                    html += '<img src="images/' + m.data[step[i]].image + '" Title="' + m.data[step[i]].name + '"  class="step" onclick="rm(' + i + ');"/>';
+                    if((i+1)%14===0){
+                        html+='<br/>';
+                    }
+                }
+                $('#steps').html(html);
+                calc_cp();
+            }
+
+            function show_result() {
+                var step = $('#temp').val().split(",");
+                $('#result').css('height', (step.length * 30) + 'px')
+                var html = '';
+                var echo = document.getElementById('echoEnable').checked;
+                var echoSound = $('#echoSound').find(":selected").text();
+                echoSound = echoSound === '-' ? '' : echoSound;
+                echoSound = echoSound.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                console.log(echoSound);
+                var macroNo = 1;
+                for (var j = 0; j < step.length - 1; j++) {
+                    if (j != 0 && j % (echo? 14:15) == 0) {
+                        if(echo){
+                            html += '/echo Macro #'+(macroNo++)+' has finished. '+echoSound+'<br/>';
+                        }
+                        html += '<hr style="color:black; height:2px; width:500px"/>';
+                    }
+                    html += '/ac "' + m.data[step[j]].name + '" &lt;me&gt';
+                    if (m.data[step[j]].buff) {
+                        html += '&lt;wait.' + $('#delay2').val() + '><br/>';
+                    } else {
+                        html += '&lt;wait.' + $('#delay').val() + '><br/>';
+                    }
+                }
+                if(echo){
+                    html += '/echo Macro #'+(macroNo++)+' has finished. '+echoSound+'<br/>';
+                }
+                $('#result').html(html);
+            }
+            function clear_step() {
+                $('#temp').val('');
+                $('#result').html('');
+                refresh();
+            }
+
+            function save_macro() {
+                var macroName = $('#macro_name').val();
+                if(macroName === ''){
+                    alert('Please enter macro name.');
+                } else {
+                    var index = -1;
+                    for (var i = 0; i < macros.length; i++) {
+                        if (macroName === macros[i].name) {
+                            index = i;
+                            break;
+                        }
+                    }
+                    if (index === -1)
+                        macros.push({"name": macroName, "macro": $('#temp').val()});
+                    else
+                        macros[index] = {"name": macroName, "macro": $('#temp').val()}
+                    refreshList();
+                    saveCookie();
+                }
+            }
+
+            function load_macro() {
+                var selected = $('#saved').find(":selected").text();
+                for (var i = 0; i < macros.length; i++) {
+                    if (selected === macros[i].name) {
+                        $('#temp').val(macros[i].macro);
+                        refresh();
+                        show_result();
+                        break;
+                    }
+                }
+            }
+
+            function delete_macro() {
+                var selected = $('#saved').find(":selected").text();
+                var index = -1;
+                for (var i = 0; i < macros.length; i++) {
+                    if (selected === macros[i].name) {
+                        index = i;
+                        break;
+                    }
+                }
+                macros.splice(index, 1);
+                refreshList();
+                saveCookie();
+            }
+
+            function saveCookie() {
+                Cookies.set("macros", JSON.stringify(macros), {expires: 9999});
+            }
+
+            function refreshList() {
+                var html = '';
+                for (var i = 0; i < macros.length; i++) {
+                    html += '<option>' + macros[i].name + '</option>';
+                }
+                $('#saved').html(html);
+            }
+
+            function showImportDialog() {
+                $('#import').dialog({height: 320, width: 500, modal: true});
+            }
+
+            function closeImportDialog() {
+                $('#import').dialog('close');
+                var macro = $('#import_macro').val().split('\n');
+                $('#import_macro').val('');
+                var t = '';
+                for (var i = 0; i < macro.length; i++) {
+                    var line = macro[i].trim();
+                    if (line.indexOf('/ac') === 0) {
+                        var action = line.substring(line.indexOf('"')+1, line.indexOf('"', line.indexOf('"')+1));
+                        for (var j = 0; j < m.data.length; j++) {
+                            if(m.data[j].name === action){
+                                t+=j+',';
+                            }
+                        }
+                    }
+                }
+                $('#temp').val(t);
+                refresh();
+                show_result();
+            }
+
+            $(function () {
+                var delays = [
+                    "3",
+                    "4",
+                    "5"
+                ];
+                $("#delay").autocomplete({
+                    source: delays
+                });
+                var delays2 = [
+                    "2",
+                    "3",
+                    "4",
+                    "5"
+                ];
+                $("#delay2").autocomplete({
+                    source: delays2
+                });
+            });
+
+
+
+    </script>
+</head>
+<body>
+<h1>Crafting Macro Builder</h1><span style="font-size: 12px">Von <a
+        href="http://na.finalfantasyxiv.com/lodestone/character/1624255/">Minzer Yuki</a> @ Tonberry - <a href="http://xiv-macro.appspot.com/">Seite</a></span>
+		<br /><span style="font-size: 12px">Deutsche Übersetzung von Paon Killerpommes</a> @ Shiva</span>
+<table>
+    <tr>
+        <td>
+            <div id="accordion">
+                <h3>Fähigkeiten Liste (Drücke auf das Bild zum hinzufügen)</h3>
+                <div>
+                    <div id="list" style="width:600px; height: 160px"></div>
+                </div>
+            </div>
+        </td>
+        <td rowspan="2">
+            <div id="accordion4">
+                <h3>Speichern/Laden</h3>
+                <div>
+                    <div id="list3" style="height: 335px">
+                        <table>
+                            <tr>
+                                <td>
+                                    <select id="saved" size="9" style="width:265px">
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input id="macro_name" placeholder="Makro Name" maxlength="20" style="width:260px"/>
+                                </td>
+                            </tr>
+                        </table>
+                        <table>
+                            <tr>
+                                <td>
+                                    <input type="button" value="Speichern" onclick="save_macro();"/>
+                                </td>
+                                <td>
+                                    <input type="button" value="Laden" onclick="load_macro();"/>
+                                </td>
+                                <td>
+                                    <input type="button" value="Löschen" onclick="delete_macro();"/>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="accordion2">
+                <h3>Herstellungs Schritte (Drücke auf Bild zum löschen)</h3>
+                <div>
+                    <div id="steps" style="height: 90px"></div>
+                </div>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <input type="button" value="Leeren" onclick="clear_step();"/> <input type="button" value="Konvertieren"
+                                                                                onclick="show_result();"/> <input
+                type="button" value="Importieren" onclick="showImportDialog();"/> <label for="delay">Verzögerung : </label><input
+                id="delay" value="3" maxlength="1" style="width:40px; text-align: center"/> sek. <label for="delay">
+            &nbsp;&nbsp;&nbsp; Verzögerung (Buff) : </label><input id="delay2" value="2" maxlength="1"
+                                                             style="width:40px; text-align: center"/> sek.
+        </td>
+        <td>
+            <input type="checkbox" id="echoEnable" value="true" onchange="show_result();"/> Füge Echo am Ende mit
+            <select id="echoSound" onchange="show_result();">
+                <option>-</option>
+                <option>&lt;se.1&gt;</option>
+                <option>&lt;se.2&gt;</option>
+                <option>&lt;se.3&gt;</option>
+                <option>&lt;se.4&gt;</option>
+                <option>&lt;se.5&gt;</option>
+                <option>&lt;se.6&gt;</option>
+                <option>&lt;se.7&gt;</option>
+                <option>&lt;se.8&gt;</option>
+                <option>&lt;se.9&gt;</option>
+                <option>&lt;se.10&gt;</option>
+                <option>&lt;se.11&gt;</option>
+                <option>&lt;se.12&gt;</option>
+                <option>&lt;se.13&gt;</option>
+                <option>&lt;se.14&gt;</option>
+                <option>&lt;se.15&gt;</option>
+                <option>&lt;se.16&gt;</option>
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <input type="hidden" id="temp" value=""/>
+            <div id="accordion3">
+                <h3>Ergebnis - HP genutzt : <span id="used_cp">0</span></h3>
+                <div>
+                    <div id="result" style="height: 500px"></div>
+                </div>
+            </div>
+        </td>
+    </tr>
+</table>
+<br/>
+<!--<span style="font-size: 12px">Tooltip from <a href="http://www.xivdb.com">xivdb.com</a></span>-->
+<div id="import" title="Importieren" style="display:none; width: 500px; height: 300px">
+    <textarea id="import_macro" cols="100" rows="10" style="width: 450px; height: 200px"
+              placeholder="Füge das ganze Makro hier ein"></textarea>
+    <input type="button" value="Importieren" onclick="closeImportDialog()"/>
+</div>
+</body>
+</html>
